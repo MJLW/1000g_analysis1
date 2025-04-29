@@ -10,6 +10,7 @@ from numpy.dtypes import StrDType
 
 import gff3_parser
 import logging
+import pdb
 
 logging.basicConfig(
     level=logging.INFO,
@@ -95,8 +96,14 @@ def z_score(carrier_row, tpm_row):
     control_mask = ~(carrier_row['carrier'])
     controls = tpm_row[control_mask]
 
+    if len(controls) == 0:
+        return np.NaN
+
     mean = np.mean(controls)
     std = np.std(controls)
+
+    if std == 0.0:
+        return np.NaN
 
     return (tpm_row - mean) / std
 
@@ -182,14 +189,20 @@ def main():
     logging.info("Calculating Z scores...")
     z_scores = np.zeros((df_variant_transcripts.height, len(vcfs)), dtype=np.float32)
     used_rsem = np.zeros((df_variant_transcripts.height, len(vcfs)), dtype=np.float32)
+    # pdb.set_trace()
+    n_within = 0
     for idx, carrier_row in enumerate(carrier_rescues):
         tidx = variant_transcripts[idx, 4]
         if tidx not in dict_rsem:
+            z_scores[idx, :] = np.NaN
             continue
 
+        n_within += 1
         rsem_row = dict_rsem[tidx]
         z_scores[idx, :] = z_score(carrier_row, rsem_row)
         used_rsem[idx, :] = rsem_row
+    logging.info(f"Calculated z_score for {n_within}/{carrier_rescues.shape[0]} rows.")
+
 
     logging.info("Preparing output file...")
     dfs = [
@@ -207,6 +220,7 @@ def main():
         .join(alt_idx_map, on="alt_idx", how="left").drop("alt_idx") \
         .join(transcript_gene_map, on="transcript_idx", how="left").drop("transcript_idx") \
         .explode(["sample", "tpm", "carrier", "rescue", "rescue_prob", "z_score"]) \
+        .filter(pl.col("z_score").is_not_nan()) \
         .select(["chr", "pos", "ref", "alt", "transcript_id", "gene_id", "symbol", "n_carriers", "n_rescues", "sample", "tpm", "carrier", "rescue", "rescue_prob", "z_score"]) \
         .sort(["chr", "pos", "ref", "alt", "transcript_id"])
 
