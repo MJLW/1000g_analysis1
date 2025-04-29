@@ -181,8 +181,6 @@ def main():
             if key not in dictionary:
                 continue
 
-            pdb.set_trace()
-
             carrier_rescues[row_idx, sample_idx] = (True, *dictionary[key])
 
     # Numpy arrays for easy access
