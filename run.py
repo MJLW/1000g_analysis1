@@ -165,7 +165,8 @@ def main():
             .join(chr_idx_map, on="chr", how="left").drop("chr") \
             .join(ref_idx_map, on="ref", how="left").drop("ref") \
             .join(alt_idx_map, on="alt", how="left").drop("alt") \
-            .select(["chr_idx", "pos", "ref_idx", "alt_idx", "transcript_idx", "rescue", "rescue_prob"])
+            .select(["chr_idx", "pos", "ref_idx", "alt_idx", "transcript_idx", "rescue", "rescue_prob"]) \
+            .with_columns(pl.col("rescue").cast(pl.Int8), pl.col("rescue_prob").cast(pl.Float32))
         for df in vcfs
     ]
 
@@ -180,6 +181,8 @@ def main():
             if key not in dictionary:
                 continue
 
+            pdb.set_trace()
+
             carrier_rescues[row_idx, sample_idx] = (True, *dictionary[key])
 
     # Numpy arrays for easy access
@@ -189,7 +192,7 @@ def main():
     logging.info("Calculating Z scores...")
     z_scores = np.zeros((df_variant_transcripts.height, len(vcfs)), dtype=np.float32)
     used_rsem = np.zeros((df_variant_transcripts.height, len(vcfs)), dtype=np.float32)
-    # pdb.set_trace()
+
     n_within = 0
     for idx, carrier_row in enumerate(carrier_rescues):
         tidx = variant_transcripts[idx, 4]
