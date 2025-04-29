@@ -48,6 +48,7 @@ def read_rsem_file(file: str) -> pl.DataFrame:
 def read_vcf_file(file: str, transcript_index_map: pl.DataFrame) -> pl.DataFrame:
     df = pl.read_csv(file, separator="\t") \
             .filter(
+                (pl.col("INFO/AF") < 0.001) &
                 (pl.col("INFO/RESCUE") != ".") & 
                 (pl.col("INFO/RESCUE_PROB") != ".") &
                 (pl.col("INFO/RESCUE_TYPE") != ".") 
